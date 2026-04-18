@@ -45,3 +45,24 @@ input, select {
 ul {
   margin-top: 10px;
 }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+th {
+  background: #2c7be5;
+  color: white;
+}
+
+tr:nth-child(even) {
+  background: #f2f2f2;
+}

@@ -1,8 +1,8 @@
 const { createClient } = supabase;
 
 const supabaseClient = createClient(
-  "YOUR_SUPABASE_URL",
-  "YOUR_ANON_KEY"
+  "https://bsbvghacbfwwtmvabbxi.supabase.co",
+  "sb_publishable_F1550nUALJYXnzk1GwPFzw_W_2aN26G"
 );
 
 // ---------- UI TOGGLE ----------

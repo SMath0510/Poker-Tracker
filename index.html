@@ -1,81 +1,94 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Poker Tracker</title>
+  <title>Poker Tracker Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
 
-<h1>🎲 Poker Tracker</h1>
+<h1>🎲 Poker Tracker Pro</h1>
 
-<!-- TOGGLE NAV -->
 <div class="nav">
-  <button onclick="showSection('register')">Register</button>
-  <button onclick="showSection('add')">Add Tx</button>
+  <button onclick="showSection('register')">Users</button>
+  <button onclick="showSection('add')">Add</button>
   <button onclick="showSection('transactions')">Transactions</button>
-  <button onclick="showSection('profit')">Profit/Loss</button>
-  <button onclick="showSection('reck')">Reck</button>
+  <button onclick="showSection('profit')">P&L</button>
+  <button onclick="showSection('settleEngine')">Settle</button>
+  <button onclick="showSection('leaderboard')">Leaderboard</button>
+  <button onclick="showSection('insights')">Insights</button>
 </div>
 
-<!-- REGISTER -->
+<!-- USERS -->
 <section id="register" class="section">
-  <h2>Register</h2>
-  <input id="username" placeholder="Username">
-  <button onclick="register()">Register</button>
+  <h2>Register User</h2>
+  <input id="username">
+  <button onclick="register()">Add</button>
+  <ul id="userList"></ul>
 </section>
 
 <!-- ADD -->
 <section id="add" class="section hidden">
   <h2>Add Transaction</h2>
-  <input id="userTx" placeholder="Username">
+  <select id="userTx"></select>
   <select id="type">
-    <option value="BUY_IN">Buy-in</option>
-    <option value="CASH_OUT">Cash-out</option>
+    <option value="BUY_IN">BUY_IN</option>
+    <option value="CASH_OUT">CASH_OUT</option>
   </select>
   <input id="amount" placeholder="Amount">
   <input id="date" type="date">
   <button onclick="addTransaction()">Add</button>
+
+  <h3>Settlement</h3>
+  <select id="fromUser"></select>
+  <select id="toUser"></select>
+  <input id="settleAmount" placeholder="Amount">
+  <input id="settleDate" type="date">
+  <button onclick="addSettlement()">Add Settlement</button>
 </section>
 
 <!-- TRANSACTIONS -->
 <section id="transactions" class="section hidden">
   <h2>Transactions</h2>
+  <select id="txUser"></select>
+  <button onclick="txByUser()">User Tx</button>
 
-  <h3>By User (latest 40)</h3>
-  <input id="txUser" placeholder="Username">
-  <button onclick="txByUser()">Fetch</button>
-
-  <h3>By Date (all users)</h3>
   <input id="txDate" type="date">
-  <button onclick="txByDate()">Fetch</button>
+  <button onclick="txByDate()">Date Tx</button>
+
+  <button onclick="exportCSV()">Export CSV</button>
 
   <div id="txTable"></div>
 </section>
 
 <!-- PROFIT -->
 <section id="profit" class="section hidden">
-  <h2>Profit / Loss</h2>
-
-  <h3>User Summary</h3>
-  <input id="profitUser" placeholder="Username">
-  <button onclick="userProfitSummary()">Get Summary</button>
-
+  <h2>P&L</h2>
+  <select id="profitUser"></select>
+  <button onclick="userProfit()">Check</button>
   <div id="profitTable"></div>
-
-  <h3>All Users for a Date</h3>
-  <input id="profitDate" type="date">
-  <button onclick="allUsersProfit()">Check</button>
-
-  <div id="allUsersProfitTable"></div>
 </section>
 
-<!-- RECK -->
-<section id="reck" class="section hidden">
-  <h2>Reck</h2>
-  <input id="reckDate" type="date">
-  <button onclick="reck()">Calculate</button>
-  <p id="reckResult"></p>
+<!-- SETTLEMENT ENGINE -->
+<section id="settleEngine" class="section hidden">
+  <h2>Auto Settlement</h2>
+  <button onclick="autoSettle()">Compute</button>
+  <div id="settleTable"></div>
+</section>
+
+<!-- LEADERBOARD -->
+<section id="leaderboard" class="section hidden">
+  <h2>Leaderboard</h2>
+  <button onclick="leaderboard()">Refresh</button>
+  <div id="leaderboardTable"></div>
+</section>
+
+<!-- INSIGHTS -->
+<section id="insights" class="section hidden">
+  <h2>Insights</h2>
+  <button onclick="insights()">Generate</button>
+  <div id="insightsTable"></div>
 </section>
 
 <script src="app.js"></script>

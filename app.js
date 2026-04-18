@@ -117,67 +117,179 @@ async function deleteTx(id){
 
 // ---------- PROFIT ----------
 async function userProfit(){
-  const uid=document.getElementById("profitUser").value;
+  const uid = document.getElementById("profitUser").value;
 
-  const { data:tx } = await supabaseClient.from("transactions").select("*").eq("user_id",uid);
-  const { data:sett } = await supabaseClient.from("settlements").select("*");
+  const { data: tx } = await supabaseClient
+    .from("transactions")
+    .select("*")
+    .eq("user_id", uid);
 
-  let pnl=0;
+  const { data: sett } = await supabaseClient
+    .from("settlements")
+    .select("*");
+
+  const map = {};
+
+  // transactions
   tx.forEach(t=>{
-    pnl += t.type==="BUY_IN"?-t.amount:t.amount;
+    if(!map[t.date]) map[t.date] = { pnl:0, settle:0 };
+
+    if(t.type==="BUY_IN") map[t.date].pnl -= t.amount;
+    else map[t.date].pnl += t.amount;
   });
 
-  let settleNet=0;
+  // settlements
   sett.forEach(s=>{
-    if(s.to_user==uid) settleNet+=s.amount;
-    if(s.from_user==uid) settleNet-=s.amount;
+    if(!map[s.date]) map[s.date] = { pnl:0, settle:0 };
+
+    if(s.to_user == uid) map[s.date].settle += s.amount;
+    if(s.from_user == uid) map[s.date].settle -= s.amount;
   });
 
-  document.getElementById("profitTable").innerHTML=`
+  let total = 0;
+
+  let html = `
     <table>
-      <tr><th>PnL</th><th>Settlement</th><th>Total</th></tr>
-      <tr><td>${pnl}</td><td>${settleNet}</td><td>${pnl+settleNet}</td></tr>
-    </table>
+      <tr>
+        <th>Date</th>
+        <th>PnL</th>
+        <th>Settlement</th>
+        <th>Net</th>
+        <th>Cumulative</th>
+      </tr>
   `;
+
+  Object.keys(map).sort().forEach(d=>{
+    const net = map[d].pnl + map[d].settle;
+    total += net;
+
+    html += `
+      <tr>
+        <td>${d}</td>
+        <td>${map[d].pnl}</td>
+        <td>${map[d].settle}</td>
+        <td>${net}</td>
+        <td>${total}</td>
+      </tr>
+    `;
+  });
+
+  html += "</table>";
+
+  document.getElementById("profitTable").innerHTML = html;
 }
 
 // ---------- AUTO SETTLE ----------
 async function autoSettle(){
-  const { data:users } = await supabaseClient.from("users").select("*");
-  const { data:tx } = await supabaseClient.from("transactions").select("*");
+  const date = document.getElementById("settleDateFilter").value;
 
-  const balance={};
-  users.forEach(u=>balance[u.id]=0);
+  const { data: users } = await supabaseClient.from("users").select("*");
+  const { data: tx } = await supabaseClient
+    .from("transactions")
+    .select("*")
+    .eq("date", date);
+
+  const balance = {};
+  const userMap = {};
+
+  users.forEach(u=>{
+    balance[u.id] = 0;
+    userMap[u.id] = u.username;
+  });
 
   tx.forEach(t=>{
-    balance[t.user_id]+= t.type==="BUY_IN"?-t.amount:t.amount;
+    balance[t.user_id] += t.type==="BUY_IN" ? -t.amount : t.amount;
   });
 
-  const pos=[],neg=[];
+  // ---------- DISPLAY DAILY PnL ----------
+  let pnlHtml = `
+    <table>
+      <tr><th>User</th><th>PnL (₹)</th></tr>
+  `;
+
   for(let u in balance){
-    if(balance[u]>0) pos.push({u,amt:balance[u]});
-    if(balance[u]<0) neg.push({u,amt:-balance[u]});
+    if(balance[u] !== 0){
+      pnlHtml += `
+        <tr>
+          <td>${userMap[u]}</td>
+          <td>${balance[u]}</td>
+        </tr>
+      `;
+    }
   }
 
-  let res=[];
-  let i=0,j=0;
+  pnlHtml += "</table>";
+  document.getElementById("dayPnlTable").innerHTML = pnlHtml;
+
+  // ---------- SETTLEMENT ENGINE ----------
+  const pos=[], neg=[];
+
+  for(let u in balance){
+    if(balance[u] > 0) pos.push({u, amt:balance[u]});
+    if(balance[u] < 0) neg.push({u, amt:-balance[u]});
+  }
+
+  let i=0, j=0;
+  const res=[];
 
   while(i<pos.length && j<neg.length){
-    let x=Math.min(pos[i].amt,neg[j].amt);
-    res.push({from:neg[j].u,to:pos[i].u,amt:x});
-    pos[i].amt-=x;
-    neg[j].amt-=x;
-    if(pos[i].amt==0) i++;
-    if(neg[j].amt==0) j++;
+    let x = Math.min(pos[i].amt, neg[j].amt);
+
+    res.push({
+      from: userMap[neg[j].u],
+      to: userMap[pos[i].u],
+      amt: x
+    });
+
+    pos[i].amt -= x;
+    neg[j].amt -= x;
+
+    if(pos[i].amt === 0) i++;
+    if(neg[j].amt === 0) j++;
   }
 
-  let html=`<table><tr><th>From</th><th>To</th><th>Amount</th></tr>`;
-  res.forEach(r=>{
-    html+=`<tr><td>${r.from}</td><td>${r.to}</td><td>${r.amt}</td></tr>`;
-  });
-  html+="</table>";
+  let html = `
+    <table>
+      <tr><th>From</th><th>To</th><th>Amount</th></tr>
+  `;
 
-  document.getElementById("settleTable").innerHTML=html;
+  res.forEach(r=>{
+    html += `
+      <tr>
+        <td>${r.from}</td>
+        <td>${r.to}</td>
+        <td>${r.amt}</td>
+      </tr>
+    `;
+  });
+
+  html += "</table>";
+
+  document.getElementById("settleTable").innerHTML = html;
+}
+// ---------- RECK -----------------
+
+async function reck(){
+  const date = document.getElementById("reckDate").value;
+
+  const { data } = await supabaseClient
+    .from("transactions")
+    .select("*")
+    .eq("date", date);
+
+  let buy = 0, cash = 0;
+
+  data.forEach(t=>{
+    if(t.type==="BUY_IN") buy += t.amount;
+    else cash += t.amount;
+  });
+
+  document.getElementById("reckTable").innerHTML = `
+    <table>
+      <tr><th>Total Buy-in</th><th>Total Cash-out</th><th>Reck</th></tr>
+      <tr><td>${buy}</td><td>${cash}</td><td>${buy - cash}</td></tr>
+    </table>
+  `;
 }
 
 // ---------- LEADERBOARD ----------

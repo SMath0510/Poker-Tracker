@@ -9,47 +9,70 @@
 
 <h1>🎲 Poker Tracker</h1>
 
+<!-- TOGGLE NAV -->
+<div class="nav">
+  <button onclick="showSection('register')">Register</button>
+  <button onclick="showSection('add')">Add Tx</button>
+  <button onclick="showSection('transactions')">Transactions</button>
+  <button onclick="showSection('profit')">Profit/Loss</button>
+  <button onclick="showSection('reck')">Reck</button>
+</div>
+
 <!-- REGISTER -->
-<section>
+<section id="register" class="section">
   <h2>Register</h2>
   <input id="username" placeholder="Username">
   <button onclick="register()">Register</button>
 </section>
 
-<!-- ADD TRANSACTION -->
-<section>
+<!-- ADD -->
+<section id="add" class="section hidden">
   <h2>Add Transaction</h2>
   <input id="userTx" placeholder="Username">
   <select id="type">
     <option value="BUY_IN">Buy-in</option>
     <option value="CASH_OUT">Cash-out</option>
   </select>
-  <input id="amount" placeholder="Amount (INR)">
+  <input id="amount" placeholder="Amount">
   <input id="date" type="date">
   <button onclick="addTransaction()">Add</button>
 </section>
 
-<!-- PROFIT -->
-<section>
-  <h2>Profit / Loss</h2>
-  <input id="userProfit" placeholder="Username">
-  <input id="profitDate" type="date">
-  <button onclick="getProfit()">Get Profit</button>
-  <p id="profitResult"></p>
-</section>
-
 <!-- TRANSACTIONS -->
-<section>
+<section id="transactions" class="section hidden">
   <h2>Transactions</h2>
-  <input id="userTxView" placeholder="Username">
+
+  <h3>By User (latest 40)</h3>
+  <input id="txUser" placeholder="Username">
+  <button onclick="txByUser()">Fetch</button>
+
+  <h3>By Date (all users)</h3>
   <input id="txDate" type="date">
-  <button onclick="getTransactions()">View</button>
+  <button onclick="txByDate()">Fetch</button>
+
   <ul id="txList"></ul>
 </section>
 
+<!-- PROFIT -->
+<section id="profit" class="section hidden">
+  <h2>Profit / Loss</h2>
+
+  <h3>User Summary (per date + total)</h3>
+  <input id="profitUser" placeholder="Username">
+  <button onclick="userProfitSummary()">Get Summary</button>
+
+  <pre id="profitBreakdown"></pre>
+
+  <h3>All Users for a Date</h3>
+  <input id="profitDate" type="date">
+  <button onclick="allUsersProfit()">Check</button>
+
+  <ul id="allUsersProfitList"></ul>
+</section>
+
 <!-- RECK -->
-<section>
-  <h2>Reck (All Users)</h2>
+<section id="reck" class="section hidden">
+  <h2>Reck</h2>
   <input id="reckDate" type="date">
   <button onclick="reck()">Calculate</button>
   <p id="reckResult"></p>

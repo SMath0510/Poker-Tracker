@@ -1,18 +1,25 @@
-const supabaseClient = supabase.createClient(
-  "https://bsbvghacbfwwtmvabbxi.supabase.co",
-  "sb_publishable_F1550nUALJYXnzk1GwPFzw_W_2aN26G"
+const { createClient } = supabase;
+
+const supabaseClient = createClient(
+  "YOUR_SUPABASE_URL",
+  "YOUR_ANON_KEY"
 );
 
-// ---------- HELPER ----------
+// ---------- UI TOGGLE ----------
+function showSection(id) {
+  document.querySelectorAll(".section").forEach(s => s.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+}
+
+// ---------- HELPERS ----------
 async function getUser(username) {
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
     .from("users")
     .select("id")
     .eq("username", username)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) return null;
-  return data;
+  return data || null;
 }
 
 // ---------- REGISTER ----------
@@ -23,11 +30,10 @@ async function register() {
     .from("users")
     .insert([{ username }]);
 
-  if (error) alert("User may already exist");
-  else alert("User registered");
+  alert(error ? "User exists" : "Registered");
 }
 
-// ---------- ADD TRANSACTION ----------
+// ---------- ADD ----------
 async function addTransaction() {
   const username = document.getElementById("userTx").value;
   const type = document.getElementById("type").value;
@@ -35,11 +41,7 @@ async function addTransaction() {
   const date = document.getElementById("date").value;
 
   const user = await getUser(username);
-
-  if (!user) {
-    alert("Username does not exist");
-    return;
-  }
+  if (!user) return alert("User does not exist");
 
   await supabaseClient.from("transactions").insert([{
     user_id: user.id,
@@ -48,62 +50,38 @@ async function addTransaction() {
     date
   }]);
 
-  alert("Transaction added");
-}
-
-// ---------- PROFIT ----------
-async function getProfit() {
-  const username = document.getElementById("userProfit").value;
-  const date = document.getElementById("profitDate").value;
-
-  const user = await getUser(username);
-
-  if (!user) {
-    document.getElementById("profitResult").innerText = "User does not exist";
-    return;
-  }
-
-  let query = supabaseClient
-    .from("transactions")
-    .select("*")
-    .eq("user_id", user.id);
-
-  if (date) query = query.eq("date", date);
-
-  const { data } = await query;
-
-  let buyin = 0, cashout = 0;
-
-  data.forEach(t => {
-    if (t.type === "BUY_IN") buyin += t.amount;
-    else cashout += t.amount;
-  });
-
-  document.getElementById("profitResult").innerText =
-    "Profit/Loss: ₹" + (cashout - buyin);
+  alert("Added");
 }
 
 // ---------- TRANSACTIONS ----------
-async function getTransactions() {
-  const username = document.getElementById("userTxView").value;
-  const date = document.getElementById("txDate").value;
-
+async function txByUser() {
+  const username = document.getElementById("txUser").value;
   const user = await getUser(username);
 
-  if (!user) {
-    alert("User does not exist");
-    return;
-  }
+  if (!user) return alert("User does not exist");
 
-  let query = supabaseClient
+  const { data } = await supabaseClient
     .from("transactions")
     .select("*")
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .order("date", { ascending: false })
+    .limit(40);
 
-  if (date) query = query.eq("date", date);
+  renderTx(data);
+}
 
-  const { data } = await query;
+async function txByDate() {
+  const date = document.getElementById("txDate").value;
 
+  const { data } = await supabaseClient
+    .from("transactions")
+    .select("*")
+    .eq("date", date);
+
+  renderTx(data);
+}
+
+function renderTx(data) {
   const list = document.getElementById("txList");
   list.innerHTML = "";
 
@@ -114,27 +92,85 @@ async function getTransactions() {
   });
 }
 
+// ---------- PROFIT ----------
+async function userProfitSummary() {
+  const username = document.getElementById("profitUser").value;
+  const user = await getUser(username);
+
+  if (!user) return alert("User does not exist");
+
+  const { data } = await supabaseClient
+    .from("transactions")
+    .select("*")
+    .eq("user_id", user.id);
+
+  const map = {};
+
+  data.forEach(t => {
+    if (!map[t.date]) map[t.date] = 0;
+
+    if (t.type === "BUY_IN") map[t.date] -= t.amount;
+    else map[t.date] += t.amount;
+  });
+
+  let total = 0;
+  let output = "";
+
+  Object.keys(map).sort().forEach(date => {
+    total += map[date];
+    output += `${date}: ₹${map[date]}\n`;
+  });
+
+  output += `\nTotal: ₹${total}`;
+
+  document.getElementById("profitBreakdown").innerText = output;
+}
+
+async function allUsersProfit() {
+  const date = document.getElementById("profitDate").value;
+
+  const { data } = await supabaseClient
+    .from("transactions")
+    .select("user_id, type, amount")
+    .eq("date", date);
+
+  const map = {};
+
+  data.forEach(t => {
+    if (!map[t.user_id]) map[t.user_id] = 0;
+
+    if (t.type === "BUY_IN") map[t.user_id] -= t.amount;
+    else map[t.user_id] += t.amount;
+  });
+
+  const list = document.getElementById("allUsersProfitList");
+  list.innerHTML = "";
+
+  for (let uid in map) {
+    if (map[uid] !== 0) {
+      const li = document.createElement("li");
+      li.innerText = `User ${uid}: ₹${map[uid]}`;
+      list.appendChild(li);
+    }
+  }
+}
+
 // ---------- RECK ----------
 async function reck() {
   const date = document.getElementById("reckDate").value;
-
-  if (!date) {
-    alert("Enter a date");
-    return;
-  }
 
   const { data } = await supabaseClient
     .from("transactions")
     .select("*")
     .eq("date", date);
 
-  let buyin = 0, cashout = 0;
+  let buy = 0, cash = 0;
 
   data.forEach(t => {
-    if (t.type === "BUY_IN") buyin += t.amount;
-    else cashout += t.amount;
+    if (t.type === "BUY_IN") buy += t.amount;
+    else cash += t.amount;
   });
 
   document.getElementById("reckResult").innerText =
-    "Reck Value: ₹" + (buyin - cashout);
+    `Reck: ₹${buy - cash}`;
 }

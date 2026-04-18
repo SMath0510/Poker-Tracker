@@ -2,106 +2,59 @@
 <html>
 <head>
   <title>Poker Tracker</title>
-  <style>
-    body { font-family: Arial; padding: 30px; max-width: 600px; margin: auto; }
-    input, select, button { margin: 5px 0; padding: 8px; width: 100%; }
-    h2 { margin-top: 30px; }
-  </style>
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
 
 <h1>🎲 Poker Tracker</h1>
 
-<h2>Register User</h2>
-<input id="username" placeholder="Username">
-<button onclick="register()">Register</button>
+<!-- REGISTER -->
+<section>
+  <h2>Register</h2>
+  <input id="username" placeholder="Username">
+  <button onclick="register()">Register</button>
+</section>
 
-<h2>Add Transaction</h2>
-<input id="userTx" placeholder="Username">
-<select id="type">
-  <option value="BUY_IN">Buy-in</option>
-  <option value="CASH_OUT">Cash-out</option>
-</select>
-<input id="amount" placeholder="Amount (INR)">
-<input id="date" type="date">
-<button onclick="addTransaction()">Add Transaction</button>
+<!-- ADD TRANSACTION -->
+<section>
+  <h2>Add Transaction</h2>
+  <input id="userTx" placeholder="Username">
+  <select id="type">
+    <option value="BUY_IN">Buy-in</option>
+    <option value="CASH_OUT">Cash-out</option>
+  </select>
+  <input id="amount" placeholder="Amount (INR)">
+  <input id="date" type="date">
+  <button onclick="addTransaction()">Add</button>
+</section>
 
-<h2>Check Profit</h2>
-<input id="userSummary" placeholder="Username">
-<button onclick="getSummary()">Get Profit/Loss</button>
+<!-- PROFIT -->
+<section>
+  <h2>Profit / Loss</h2>
+  <input id="userProfit" placeholder="Username">
+  <input id="profitDate" type="date">
+  <button onclick="getProfit()">Get Profit</button>
+  <p id="profitResult"></p>
+</section>
 
-<h3 id="result"></h3>
+<!-- TRANSACTIONS -->
+<section>
+  <h2>Transactions</h2>
+  <input id="userTxView" placeholder="Username">
+  <input id="txDate" type="date">
+  <button onclick="getTransactions()">View</button>
+  <ul id="txList"></ul>
+</section>
 
-<script>
-const supabaseClient = supabase.createClient(
-  "https://bsbvghacbfwwtmvabbxi.supabase.co",
-  "sb_publishable_F1550nUALJYXnzk1GwPFzw_W_2aN26G"
-);
+<!-- RECK -->
+<section>
+  <h2>Reck (All Users)</h2>
+  <input id="reckDate" type="date">
+  <button onclick="reck()">Calculate</button>
+  <p id="reckResult"></p>
+</section>
 
-// Register
-async function register() {
-  const username = document.getElementById("username").value;
-
-  const { error } = await supabaseClient
-    .from("users")
-    .insert([{ username }]);
-
-  if (error) alert(error.message);
-  else alert("User registered");
-}
-
-// Add transaction
-async function addTransaction() {
-  const username = document.getElementById("userTx").value;
-  const type = document.getElementById("type").value;
-  const amount = parseInt(document.getElementById("amount").value);
-  const date = document.getElementById("date").value;
-
-  const { data: user } = await supabaseClient
-    .from("users")
-    .select("id")
-    .eq("username", username)
-    .single();
-
-  if (!user) return alert("User not found");
-
-  await supabaseClient.from("transactions").insert([{
-    user_id: user.id,
-    type,
-    amount,
-    date
-  }]);
-
-  alert("Transaction added");
-}
-
-// Get summary
-async function getSummary() {
-  const username = document.getElementById("userSummary").value;
-
-  const { data: user } = await supabaseClient
-    .from("users")
-    .select("id")
-    .eq("username", username)
-    .single();
-
-  const { data: tx } = await supabaseClient
-    .from("transactions")
-    .select("*")
-    .eq("user_id", user.id);
-
-  let buyin = 0, cashout = 0;
-
-  tx.forEach(t => {
-    if (t.type === "BUY_IN") buyin += t.amount;
-    else cashout += t.amount;
-  });
-
-  document.getElementById("result").innerText =
-    "Profit/Loss: ₹" + (cashout - buyin);
-}
-</script>
-
+<script src="app.js"></script>
 </body>
 </html>

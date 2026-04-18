@@ -62,12 +62,12 @@ async function txByUser() {
 
   const { data } = await supabaseClient
     .from("transactions")
-    .select("*")
+    .select("date, type, amount, users(username)")
     .eq("user_id", user.id)
     .order("date", { ascending: false })
     .limit(40);
 
-  renderTx(data);
+  renderTxTable(data);
 }
 
 async function txByDate() {
@@ -75,21 +75,38 @@ async function txByDate() {
 
   const { data } = await supabaseClient
     .from("transactions")
-    .select("*")
+    .select("date, type, amount, users(username)")
     .eq("date", date);
 
-  renderTx(data);
+  renderTxTable(data);
 }
 
-function renderTx(data) {
-  const list = document.getElementById("txList");
-  list.innerHTML = "";
+function renderTxTable(data) {
+  const container = document.getElementById("txTable");
+
+  let html = `
+    <table>
+      <tr>
+        <th>Date</th>
+        <th>Username</th>
+        <th>Type</th>
+        <th>Amount (₹)</th>
+      </tr>
+  `;
 
   data.forEach(t => {
-    const li = document.createElement("li");
-    li.innerText = `${t.date} | ${t.type} | ₹${t.amount}`;
-    list.appendChild(li);
+    html += `
+      <tr>
+        <td>${t.date}</td>
+        <td>${t.users.username}</td>
+        <td>${t.type}</td>
+        <td>${t.amount}</td>
+      </tr>
+    `;
   });
+
+  html += "</table>";
+  container.innerHTML = html;
 }
 
 // ---------- PROFIT ----------
@@ -101,7 +118,7 @@ async function userProfitSummary() {
 
   const { data } = await supabaseClient
     .from("transactions")
-    .select("*")
+    .select("date, type, amount")
     .eq("user_id", user.id);
 
   const map = {};
@@ -114,16 +131,37 @@ async function userProfitSummary() {
   });
 
   let total = 0;
-  let output = "";
+
+  let html = `
+    <table>
+      <tr>
+        <th>Date</th>
+        <th>Profit/Loss (₹)</th>
+        <th>Cumulative (₹)</th>
+      </tr>
+  `;
 
   Object.keys(map).sort().forEach(date => {
     total += map[date];
-    output += `${date}: ₹${map[date]}\n`;
+
+    html += `
+      <tr>
+        <td>${date}</td>
+        <td>${map[date]}</td>
+        <td>${total}</td>
+      </tr>
+    `;
   });
 
-  output += `\nTotal: ₹${total}`;
+  html += `
+      <tr>
+        <th>Total</th>
+        <th colspan="2">${total}</th>
+      </tr>
+    </table>
+  `;
 
-  document.getElementById("profitBreakdown").innerText = output;
+  document.getElementById("profitTable").innerHTML = html;
 }
 
 async function allUsersProfit() {
@@ -131,28 +169,42 @@ async function allUsersProfit() {
 
   const { data } = await supabaseClient
     .from("transactions")
-    .select("user_id, type, amount")
+    .select("user_id, type, amount, users(username)")
     .eq("date", date);
 
   const map = {};
 
   data.forEach(t => {
-    if (!map[t.user_id]) map[t.user_id] = 0;
+    const username = t.users.username;
 
-    if (t.type === "BUY_IN") map[t.user_id] -= t.amount;
-    else map[t.user_id] += t.amount;
+    if (!map[username]) map[username] = 0;
+
+    if (t.type === "BUY_IN") map[username] -= t.amount;
+    else map[username] += t.amount;
   });
 
-  const list = document.getElementById("allUsersProfitList");
-  list.innerHTML = "";
+  let html = `
+    <table>
+      <tr>
+        <th>Username</th>
+        <th>Profit/Loss (₹)</th>
+      </tr>
+  `;
 
-  for (let uid in map) {
-    if (map[uid] !== 0) {
-      const li = document.createElement("li");
-      li.innerText = `User ${uid}: ₹${map[uid]}`;
-      list.appendChild(li);
+  Object.keys(map).forEach(user => {
+    if (map[user] !== 0) {
+      html += `
+        <tr>
+          <td>${user}</td>
+          <td>${map[user]}</td>
+        </tr>
+      `;
     }
-  }
+  });
+
+  html += "</table>";
+
+  document.getElementById("allUsersProfitTable").innerHTML = html;
 }
 
 // ---------- RECK ----------
